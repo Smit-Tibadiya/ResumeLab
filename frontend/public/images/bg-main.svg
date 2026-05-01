@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0fdfa" />
+      <stop offset="100%" stop-color="#ccfbf1" />
+    </linearGradient>
+
+    <linearGradient id="darkGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#0f766e" stop-opacity="0.9" />
+    </linearGradient>
+
+    <linearGradient id="glassHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    </linearGradient>
+
+    <linearGradient id="softGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#5eead4" stop-opacity="0.4" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1000" height="1000" fill="url(#bgGradient)" />
+
+  <g stroke="#14b8a6" stroke-width="1.5" stroke-opacity="0.3" fill="none">
+    <polyline points="600,800 750,650 900,700 850,950 600,800" />
+    <polyline points="750,650 800,500 950,550 900,700" />
+    <polyline points="500,600 750,650" />
+    <polyline points="800,500 850,300 1000,400" />
+    
+    <polyline points="100,500 250,450 300,600 150,700 100,500" />
+    <polyline points="250,450 400,350 300,600" />
+    <polyline points="400,350 500,600" />
+  </g>
+
+  <g fill="#0f766e" opacity="0.5">
+    <circle cx="600" cy="800" r="5"/>
+    <circle cx="750" cy="650" r="7"/>
+    <circle cx="900" cy="700" r="5"/>
+    <circle cx="850" cy="950" r="4"/>
+    <circle cx="800" cy="500" r="6"/>
+    <circle cx="950" cy="550" r="4"/>
+    <circle cx="500" cy="600" r="5"/>
+    <circle cx="850" cy="300" r="4"/>
+    
+    <circle cx="100" cy="500" r="4"/>
+    <circle cx="250" cy="450" r="6"/>
+    <circle cx="300" cy="600" r="5"/>
+    <circle cx="150" cy="700" r="4"/>
+    <circle cx="400" cy="350" r="5"/>
+  </g>
+
+  <g transform="translate(350, -100) rotate(-35)">
+    <rect x="-200" y="-100" width="500" height="300" rx="30" fill="url(#softGlass)" stroke="#99f6e4" stroke-width="1.5" />
+  </g>
+
+  <g transform="translate(150, 100) rotate(-35)">
+    <rect x="-280" y="-180" width="550" height="350" rx="40" fill="#000000" opacity="0.05" />
+    
+    <rect x="-300" y="-200" width="550" height="350" rx="40" fill="url(#darkGlass)" stroke="#5eead4" stroke-width="2"/>
+    
+    <rect x="-290" y="-190" width="530" height="150" rx="30" fill="url(#glassHighlight)"/>
+    
+    <polygon points="-250,-200 -150,-200 -250,150 -300,150" fill="#ffffff" opacity="0.15" />
+    <polygon points="-100,-200 -50,-200 -150,150 -200,150" fill="#ffffff" opacity="0.1" />
+  </g>
+
+  <g transform="translate(-50, 300) rotate(-35)">
+    <rect x="-100" y="-100" width="250" height="150" rx="20" fill="url(#softGlass)" stroke="#ffffff" stroke-width="2" stroke-opacity="0.8"/>
+  </g>
+</svg>
