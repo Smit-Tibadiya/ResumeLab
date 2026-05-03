@@ -9,8 +9,12 @@ const User = require("./models/User.js");
 
 const app = express();
 
-// Middleware
-app.use(cors()); // Allows your React app on port 5173 to talk to this server on port 5000
+const corsOptions = {
+  origin: ['http://localhost:5173', process.env.FRONTEND_DOMAIN],
+  optionsSuccessStatus: 200
+}
+app.use(cors(corsOptions));
+
 app.use(express.json({limit: "50mb"})); // Allows the server to read JSON bodies from React
 
 // Connect to MongoDB
