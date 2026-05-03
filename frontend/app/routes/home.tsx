@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router"; 
 import Navbar from "~/components/Navbar";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Home() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function Home() {
 
     const fetchDashboardResumes = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/api/resumes", {
+        const response = await fetch(`${API_URL}/api/resumes`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -54,7 +55,7 @@ export default function Home() {
       const token = localStorage.getItem("token");
       
       // 2. Send the delete request to the backend
-      const response = await fetch(`http://127.0.0.1:5000/api/resumes/${id}`, {
+      const response = await fetch(`${API_URL}/api/resumes/${id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

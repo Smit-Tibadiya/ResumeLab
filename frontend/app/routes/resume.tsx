@@ -4,6 +4,7 @@ import Navbar from "~/components/Navbar";
 import ATS from "~/components/ATS";
 import Details from "~/components/Details";
 import Summary from "~/components/Summary";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const meta = () => [
   { title: "ResumeLab | Analysis Report" },
@@ -27,7 +28,7 @@ const resume = () => {
           return;
         }
 
-        const response = await fetch(`http://127.0.0.1:5000/api/resumes/${id}`, {
+        const response = await fetch(`${API_URL}/api/resumes/${id}`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,

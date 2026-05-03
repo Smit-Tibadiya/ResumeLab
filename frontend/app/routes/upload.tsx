@@ -3,7 +3,8 @@ import {useNavigate} from "react-router";
 import FileUploader from "~/components/FileUploader";
 import Navbar from "~/components/Navbar";
 import PulseScanner from "~/components/PulseScanner";
-import {convertPdfToImage, extractTextFromPDF} from "~/lib/pdfHandle";
+import { convertPdfToImage, extractTextFromPDF } from "~/lib/pdfHandle";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const upload = () => {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ const upload = () => {
       if (!token) throw new Error("Please log in to analyze resumes.");
 
       const response = await fetch(
-        "http://127.0.0.1:5000/api/resumes/analyze",
+        `${API_URL}/api/resumes/analyze`,
         {
           method: "POST",
           headers: {

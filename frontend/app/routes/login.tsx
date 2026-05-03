@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const login = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
