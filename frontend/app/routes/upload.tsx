@@ -13,16 +13,7 @@ const upload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isRoastMode, setIsRoastMode] = useState(false);
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const handleAnalyze = async ({
+const handleAnalyze = async ({
     companyName,
     jobTitle,
     jobDescription,
@@ -34,45 +25,47 @@ const upload = () => {
     file: File;
   }) => {
     setIsProcessing(true);
-    setStatusText("Initializing Scanner...");
+    setStatusText(isRoastMode ? "Preparing the flames..." : "Initializing Scanner...");
 
     try {
-      setStatusText("Extracting UI Preview & Text...");
+      setStatusText(isRoastMode ? "Judging your life choices..." : "Extracting UI Preview & Text...");
+      
+      // 1. Generate the image file
       const imageFile = await convertPdfToImage(file);
-      if (!imageFile.file)
-        throw new Error("Failed to convert resume to image.");
-      const imageBase64 = await fileToBase64(imageFile.file);
+      if (!imageFile.file) throw new Error("Failed to convert resume to image.");
+      
+      // 2. Extract the raw text
       const resumeText = await extractTextFromPDF(file);
 
-      setStatusText("Analyzing with AI Server...");
+      setStatusText(isRoastMode ? "Summoning the ruthless AI recruiter..." : "Analyzing with AI Server...");
 
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Please log in to analyze resumes.");
 
-      const response = await fetch(
-        `${API_URL}/api/resumes/analyze`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            companyName,
-            jobTitle,
-            jobDescription,
-            resumeText,
-            imageBase64,
-            isRoastMode,
-          }),
-        }
-      );
+      // --- THE FIX: Construct FormData instead of a JSON object ---
+      const formData = new FormData();
+      formData.append('companyName', companyName);
+      formData.append('jobTitle', jobTitle);
+      formData.append('jobDescription', jobDescription);
+      formData.append('resumeText', resumeText);
+      formData.append('isRoastMode', String(isRoastMode)); // Crucial: Convert boolean to string for FormData
+      
+      // Attach the actual binary image file.
+      formData.append('previewImage', imageFile.file);
+
+      const response = await fetch(`${API_URL}/api/resumes/analyze`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData, 
+      });
 
       if (!response.ok) throw new Error(`Server Error: ${response.status}`);
 
       const data = await response.json();
 
-      setStatusText("Analysis Complete! Redirecting...");
+      setStatusText(isRoastMode ? "Roast Complete! Good luck reading this..." : "Analysis Complete! Redirecting...");
 
       setTimeout(() => {
         navigate(`/resume/${data.id}`);
