@@ -1,5 +1,6 @@
 const Resume = require("../models/Resume.js");
-const cloudinary = require("cloudinary");
+const streamifier = require("streamifier");
+const cloudinary = require("cloudinary").v2;
 const analyzeResume = async (req, res) => {
   try {
     // 1. Extract isRoastMode from the request body
@@ -25,8 +26,8 @@ const analyzeResume = async (req, res) => {
           }
         );
 
-        // Write the raw binary buffer directly into the Cloudinary stream
-        cStream.end(fileBuffer);
+          // This guarantees the stream flows and CLOSES properly!
+          streamifier.createReadStream(fileBuffer).pipe(cStream);
       });
     };
 
