@@ -1,5 +1,5 @@
 const Resume = require("../models/Resume.js");
-
+const cloudinary = require("cloudinary");
 const analyzeResume = async (req, res) => {
   try {
     // 1. Extract isRoastMode from the request body
