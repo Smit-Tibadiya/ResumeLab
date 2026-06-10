@@ -1,9 +1,9 @@
 const Resume = require("../models/Resume.js");
 const streamifier = require("streamifier");
 const cloudinary = require("cloudinary").v2;
+
 const analyzeResume = async (req, res) => {
   try {
-    // 1. Extract isRoastMode from the request body
     const {
       companyName,
       jobTitle,
@@ -12,7 +12,7 @@ const analyzeResume = async (req, res) => {
       isRoastMode,
     } = req.body;
 
-      // Helper function to handle the native Cloudinary stream upload
+    // Helper function to handle the native Cloudinary stream upload
     const uploadToCloudinary = (fileBuffer) => {
       return new Promise((resolve, reject) => {
         const cStream = cloudinary.uploader.upload_stream(
@@ -22,32 +22,33 @@ const analyzeResume = async (req, res) => {
           },
           (error, result) => {
             if (error) return reject(error);
-            resolve(result.secure_url); // Resolves with the live secure URL
+            resolve(result.secure_url);
           }
         );
-
-          // This guarantees the stream flows and CLOSES properly!
-          streamifier.createReadStream(fileBuffer).pipe(cStream);
+        streamifier.createReadStream(fileBuffer).pipe(cStream);
       });
     };
 
     let uploadedImageUrl = null;
-
-    // If a file buffer exists from Multer, stream it directly
     if (req.file && req.file.buffer) {
       uploadedImageUrl = await uploadToCloudinary(req.file.buffer);
     }
       
-    // 2. Set the default persona
-    let aiPersona = `You are an expert ATS (Applicant Tracking System) software and a highly experienced technical recruiter. Your job is to strictly analyze the provided resume against the provided job description.Don't be too harsh consider this for freshers and come from 2nd or 3rd tier cities`;
+    // --- 1. PERSONA ALIGNMENT ---
+    let aiPersona = `You are a supportive, insightful technical recruiter and career mentor specializing in entry-level tech talent. 
+Your goal is to evaluate this resume constructively. The candidate is a fresher/student often coming from a Tier-2 or Tier-3 college. 
+Do not penalize them for a lack of corporate years of experience. Instead, look for foundational skills, academic projects, technical problem-solving capabilities, and structural clarity. 
+Your feedback should be encouraging, realistic, and highly actionable, offering clear guidance on how they can improve.`;
 
-    // 3. Override it if Roast Mode is turned on
-    if (isRoastMode) {
-      aiPersona = `You are an incredibly elitist, brutally honest, and sarcastic senior technical recruiter at a FAANG company. You review 500 resumes a day, and you have zero patience for fluff, bad formatting, or weak bullet points. 
-  Your job is to ROAST the provided resume. Be absolutely brutal, funny, and sarcastic. Tear apart their cliches. However, your underlying feedback must still be factually accurate.`;
+    // Check if Roast Mode is active (handling both boolean and FormData string forms)
+    const checkRoast = isRoastMode === true || isRoastMode === 'true';
+
+    if (checkRoast) {
+      aiPersona = `You are an incredibly elitist, brutally honest, and deeply sarcastic senior technical recruiter at a top-tier FAANG company. You review 500 resumes a day and have zero patience for fluff, cliches, bad formatting, or generic templates. 
+Your job is to completely ROAST the provided resume. Be absolutely brutal, funny, and highly sarcastic. Mock their buzzwords and weak project bullet points mercilessly. However, your underlying core feedback points must still be factually accurate so they can actually fix it.`;
     }
 
-    // 1. Send the text to Groq (Server-to-Server, so your key is hidden!)
+    // 2. TRIGGER THE GROQ API PIPELINE
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -61,8 +62,20 @@ const analyzeResume = async (req, res) => {
           messages: [
             {
               role: "system",
-              content: `${aiPersona}\n\n CRITICAL RULES: \nYou are an expert ATS software and senior technical recruiter. You must strictly output valid JSON. Use this exact schema:
-            { "overallScore": number, "ATS": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, "toneAndStyle": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, "content": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, "structure": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, "skills": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] } }`,
+              content: `${aiPersona}\n\nCRITICAL SCORING & OUTPUT RULES:
+1. You must strictly output valid JSON matching the exact schema provided below. Do not include any introductory markdown prose or backticks.
+2. EVERY score field ("overallScore" and the "score" inside each category) MUST be an integer between 0 and 100 representing a percentage match (e.g., 75, not 7.5 or 7). Never use single-digit ratings.
+3. For normal mode, be fair and encouraging (scores for decent fresher resumes should realistically land between 60 and 90). For Roast Mode, you can score much lower and write sarcastic tips.
+
+JSON Schema to follow precisely:
+{ 
+  "overallScore": number, 
+  "ATS": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
+  "toneAndStyle": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
+  "content": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
+  "structure": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
+  "skills": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] } 
+}`,
             },
             {
               role: "user",
@@ -75,14 +88,14 @@ const analyzeResume = async (req, res) => {
             ${
               jobDescription
                 ? `Here is the job description to compare it against: ${jobDescription}`
-                : "Provide a general review of the resume."
+                : "Provide a general review of the resume highlighting strengths and entry-level career improvements."
             }
             
             Resume Text: ${resumeText}`,
             },
           ],
-          response_format: {type: "json_object"},
-          temperature: 0.6,
+          response_format: { type: "json_object" },
+          temperature: checkRoast ? 0.75 : 0.4, // Higher temperature for wilder roasts, lower for stable, structured evaluation
         }),
       }
     );
@@ -91,9 +104,9 @@ const analyzeResume = async (req, res) => {
     const groqData = await groqResponse.json();
     const parsedFeedback = JSON.parse(groqData.choices[0].message.content);
 
-    // 2. Save everything to MongoDB
+    // 3. Save everything to MongoDB
     const newResume = new Resume({
-      userId: req.user.userId, // Pulled from the JWT token
+      userId: req.user.userId, 
       companyName,
       jobTitle,
       jobDescription,
@@ -102,31 +115,27 @@ const analyzeResume = async (req, res) => {
     });
 
     const savedResume = await newResume.save();
-
-    // 3. Send the new MongoDB ID back to React
-    res.status(201).json({id: savedResume._id});
+    res.status(201).json({ id: savedResume._id });
   } catch (error) {
     console.error(error);
-    res.status(500).json({message: "Server error during analysis."});
+    res.status(500).json({ message: "Server error during analysis." });
   }
-}
+};
 
 const fetchAllResume = async (req, res) => {
   try {
-    // Find all resumes matching this user's ID, sorted by newest first
-    const resumes = await Resume.find({userId: req.user.userId}).sort({
+    const resumes = await Resume.find({ userId: req.user.userId }).sort({
       createdAt: -1,
     });
     res.json(resumes);
   } catch (error) {
     console.error(error);
-    res.status(500).json({message: "Server error fetching dashboard data."});
+    res.status(500).json({ message: "Server error fetching dashboard data." });
   }
-}
+};
 
 const getResumeResult = async (req, res) => {
   try {
-    // Ensure the resume belongs to the person requesting it
     const resume = await Resume.findOne({
       _id: req.params.id,
       userId: req.user.userId,
@@ -135,19 +144,18 @@ const getResumeResult = async (req, res) => {
     if (!resume) {
       return res
         .status(404)
-        .json({message: "Resume not found or access denied."});
+        .json({ message: "Resume not found or access denied." });
     }
 
     res.json(resume);
   } catch (error) {
     console.error(error);
-    res.status(500).json({message: "Server error fetching resume details."});
+    res.status(500).json({ message: "Server error fetching resume details." });
   }
-}
+};
 
 const deleteResume = async (req, res) => {
     try {
-        // Find the resume by ID and ensure it belongs to the logged-in user
         const deletedResume = await Resume.findOneAndDelete({
             _id: req.params.id,
             userId: req.user.userId,
