@@ -39,7 +39,7 @@ const analyzeResume = async (req, res) => {
     }
       
     // 2. Set the default persona
-    let aiPersona = `You are an expert ATS (Applicant Tracking System) software and a highly experienced technical recruiter. Your job is to strictly analyze the provided resume against the provided job description.`;
+    let aiPersona = `You are an expert ATS (Applicant Tracking System) software and a highly experienced technical recruiter. Your job is to strictly analyze the provided resume against the provided job description.Don't be too harsh consider this for freshers and come from 2nd or 3rd tier cities`;
 
     // 3. Override it if Roast Mode is turned on
     if (isRoastMode) {

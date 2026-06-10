@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const registerUser = async (req, res) => {
   try {
@@ -14,8 +15,9 @@ const registerUser = async (req, res) => {
         .json({message: "User already exists with this email."});
     }
 
-    // Create new user (Storing password as-is for local testing)
-    const newUser = new User({name, email, password});
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    const newUser = new User({ name, email, password: hashedPassword });
     await newUser.save();
 
     res.status(201).json({message: "User registered successfully!"});
@@ -23,7 +25,7 @@ const registerUser = async (req, res) => {
     console.error(error);
     res.status(500).json({message: "Server error during registration."});
   }
-}
+};
 
 const loginUser = async (req, res) => {
   try {
@@ -35,9 +37,10 @@ const loginUser = async (req, res) => {
       return res.status(400).json({message: "Invalid email or password."});
     }
 
-    // Check password (Direct string comparison for local testing)
-    if (password !== user.password) {
-      return res.status(400).json({message: "Invalid email or password."});
+    // Check password
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: "Invalid email or password." });
     }
 
     // Generate JWT Token so React remembers who is logged in
@@ -56,8 +59,9 @@ const loginUser = async (req, res) => {
     console.error(error);
     res.status(500).json({message: "Server error during login."});
   }
-}
+};
 
 module.exports = {
-    registerUser, loginUser
-}
+  registerUser,
+  loginUser,
+};
