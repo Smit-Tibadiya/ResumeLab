@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router"; 
 import Navbar from "~/components/Navbar";
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; // Fallback to localhost if not set
 
 export default function Home() {
   const navigate = useNavigate();

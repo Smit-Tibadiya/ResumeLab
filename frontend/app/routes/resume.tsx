@@ -4,7 +4,7 @@ import Navbar from "~/components/Navbar";
 import ATS from "~/components/ATS";
 import Details from "~/components/Details";
 import Summary from "~/components/Summary";
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; // Fallback to localhost if not set
 
 export const meta = () => [
   { title: "ResumeLab | Analysis Report" },

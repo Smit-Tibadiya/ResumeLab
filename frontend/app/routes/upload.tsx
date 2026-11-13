@@ -4,7 +4,7 @@ import FileUploader from "~/components/FileUploader";
 import Navbar from "~/components/Navbar";
 import PulseScanner from "~/components/PulseScanner";
 import { convertPdfToImage, extractTextFromPDF } from "~/lib/pdfHandle";
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; // Fallback to localhost if not set
 
 const upload = () => {
   const navigate = useNavigate();

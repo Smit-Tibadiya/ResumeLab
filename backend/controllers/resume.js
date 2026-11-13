@@ -48,62 +48,130 @@ Your feedback should be encouraging, realistic, and highly actionable, offering 
 Your job is to completely ROAST the provided resume. Be absolutely brutal, funny, and highly sarcastic. Mock their buzzwords and weak project bullet points mercilessly. However, your underlying core feedback points must still be factually accurate so they can actually fix it.`;
     }
 
-    // 2. TRIGGER THE GROQ API PIPELINE
-    const groqResponse = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
+// 2. TRIGGER THE GROQ API PIPELINE
+
+if (!process.env.GROQ_API_KEY) {
+  throw new Error("GROQ_API_KEY is missing from environment variables");
+}
+
+const groqResponse = await fetch(
+  "https://api.groq.com/openai/v1/chat/completions",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-oss-120b",
+      messages: [
+        {
+          role: "system",
+          content: `${aiPersona}
+
+CRITICAL SCORING & OUTPUT RULES:
+1. Output valid JSON only. No markdown or backticks.
+2. Every score must be an integer between 0 and 100.
+3. Normal mode should be fair and encouraging.
+4. Roast mode can use lower scores and sarcastic tips.
+
+JSON Schema:
+{
+  "overallScore": 0,
+  "ATS": {
+    "score": 0,
+    "tips": [
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            {
-              role: "system",
-              content: `${aiPersona}\n\nCRITICAL SCORING & OUTPUT RULES:
-1. You must strictly output valid JSON matching the exact schema provided below. Do not include any introductory markdown prose or backticks.
-2. EVERY score field ("overallScore" and the "score" inside each category) MUST be an integer between 0 and 100 representing a percentage match (e.g., 75, not 7.5 or 7). Never use single-digit ratings.
-3. For normal mode, be fair and encouraging (scores for decent fresher resumes should realistically land between 60 and 90). For Roast Mode, you can score much lower and write sarcastic tips.
-
-JSON Schema to follow precisely:
-{ 
-  "overallScore": number, 
-  "ATS": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
-  "toneAndStyle": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
-  "content": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
-  "structure": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] }, 
-  "skills": { "score": number, "tips": [{ "type": "improve" | "good", "tip": string, "explanation": string }] } 
-}`,
-            },
-            {
-              role: "user",
-              content: `Analyze this resume. 
-            ${
-              jobTitle
-                ? `The candidate is applying for a ${jobTitle} role.`
-                : ""
-            } 
-            ${
-              jobDescription
-                ? `Here is the job description to compare it against: ${jobDescription}`
-                : "Provide a general review of the resume highlighting strengths and entry-level career improvements."
-            }
-            
-            Resume Text: ${resumeText}`,
-            },
-          ],
-          response_format: { type: "json_object" },
-          temperature: checkRoast ? 0.75 : 0.4, // Higher temperature for wilder roasts, lower for stable, structured evaluation
-        }),
+        "type": "improve",
+        "tip": "Example tip",
+        "explanation": "Example explanation"
       }
-    );
+    ]
+  },
+  "toneAndStyle": {
+    "score": 0,
+    "tips": []
+  },
+  "content": {
+    "score": 0,
+    "tips": []
+  },
+  "structure": {
+    "score": 0,
+    "tips": []
+  },
+  "skills": {
+    "score": 0,
+    "tips": []
+  }
+}`,
+        },
+        {
+          role: "user",
+          content: `Analyze this resume.
 
-    if (!groqResponse.ok) throw new Error("Failed to get response from Groq");
-    const groqData = await groqResponse.json();
-    const parsedFeedback = JSON.parse(groqData.choices[0].message.content);
+${jobTitle ? `The candidate is applying for ${jobTitle}.` : ""}
 
+${
+  jobDescription
+    ? `Job Description: ${jobDescription}`
+    : "Provide a general review of the resume."
+}
+
+Resume Text: ${resumeText}`,
+        },
+      ],
+      response_format: {
+        type: "json_object",
+      },
+      temperature: checkRoast ? 0.75 : 0.4,
+    }),
+  }
+);
+
+// Read the actual API response
+const rawResponse = await groqResponse.text();
+
+let groqData;
+
+try {
+  groqData = JSON.parse(rawResponse);
+} catch (error) {
+  console.error("Invalid Groq response:", rawResponse);
+
+  throw new Error("Groq returned an invalid response");
+}
+
+// Check API status
+if (!groqResponse.ok) {
+  console.error("Groq Status:", groqResponse.status);
+  console.error("Groq Error:", groqData);
+
+  return res.status(502).json({
+    message: "Groq API request failed",
+    details: groqData.error?.message || "Unknown Groq API error",
+  });
+}
+
+// Extract AI response
+const aiContent = groqData.choices?.[0]?.message?.content;
+
+if (!aiContent) {
+  console.error("Groq returned no message:", groqData);
+
+  throw new Error("Groq returned an empty response");
+}
+
+// Parse AI-generated JSON
+let parsedFeedback;
+
+try {
+  parsedFeedback = JSON.parse(aiContent);
+} catch (error) {
+  console.error("AI JSON parsing error:", aiContent);
+
+  throw new Error("AI returned invalid JSON");
+}
     // 3. Save everything to MongoDB
     const newResume = new Resume({
       userId: req.user.userId, 
@@ -117,8 +185,16 @@ JSON Schema to follow precisely:
     const savedResume = await newResume.save();
     res.status(201).json({ id: savedResume._id });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error during analysis." });
+    console.error("Resume Analysis Error:", error);
+
+    if (res.headersSent) {
+      return;
+    }
+
+    res.status(500).json({
+      message: "Failed to analyze resume",
+      error: error.message,
+    });
   }
 };
 
